@@ -4,19 +4,19 @@ from itertools import product
 import multiprocessing
 
 # Hyperparameters
-hidden_dims = [16]
-embedding_dims = [10]
-encoding_dims = [4]
-batch_sizes = [256]
-learning_rates = [0.001]
+hidden_dims = [16, 32, 64]
+embedding_dims = [10, 20, 30]
+encoding_dims = [4, 8, 16]
+batch_sizes = [256, 512, 1024]
+learning_rates = [0.002]
 sequence_lengths = [5, 10, 15, 20]
 patience = 5
-num_epochs = 30
+num_epochs = 25
 val_split = 0.3
 
 # NOTE: Make sure to change paths accordingly!
-folder_path = '../ADFA-LD-Dataset/ADFA-LD/Training_Data_Master/'
-attack_data_master_path = '../ADFA-LD-Dataset/ADFA-LD/Attack_Data_Master/'
+folder_path = '../../ADFA-LD-Dataset/ADFA-LD/Training_Data_Master/'
+attack_data_master_path = '../../ADFA-LD-Dataset/ADFA-LD/Attack_Data_Master/'
 
 # Create all combinations of hyperparameters
 
@@ -46,13 +46,13 @@ def track_progress_and_collect_results(pool, all_combinations):
 
 
 if __name__ == "__main__":
-
-    print('CPU count:', multiprocessing.cpu_count())
+    cores = multiprocessing.cpu_count()
+    print('CPU count:', cores)
     
     all_combinations = list(product(hidden_dims, embedding_dims, encoding_dims, batch_sizes, learning_rates, sequence_lengths, [num_epochs], [patience], [val_split]))
-
+    num_processes = len(all_combinations) if len(all_combinations) < cores else cores
     # Start the grid search WITH multiprocessing
-    with Pool(processes=multiprocessing.cpu_count()) as pool:
+    with Pool(processes=num_processes) as pool:
         results = track_progress_and_collect_results(pool, all_combinations)
     
     # Start the grid search WITHOUT multiprocessing
@@ -73,6 +73,9 @@ if __name__ == "__main__":
 
     }
 
+    # Initialize a list to store the results
+    top_models = []
+
     for result in results:
         train_loss, attack_loss, best_val_loss, best_ratio, hidden_dim, embedding_dim, encoding_dim, batch_size, lr, best_model, sequence_length = result
         if best_ratio > best_model_info['atk_val_ratio']:
@@ -88,5 +91,26 @@ if __name__ == "__main__":
                 'learning_rate': lr,
                 'sequence_length': sequence_length
             })
+        
+        # Add the current model to the list of top models
+        top_models.append({
+            'train_loss': train_loss,
+            'attack_loss': attack_loss,
+            'val_loss': best_val_loss,
+            'atk_val_ratio': best_ratio,
+            'hidden_dim': hidden_dim,
+            'embedding_dim': embedding_dim,
+            'encoding_dim': encoding_dim,
+            'batch_size': batch_size,
+            'learning_rate': lr,
+            'sequence_length': sequence_length
+        })
 
-    print("Best Model:", best_model_info)
+    # Sort the top models based on atk_val_ratio in descending order
+    top_models.sort(key=lambda x: x['atk_val_ratio'], reverse=True)
+
+    # Print the top 10 models
+    print("Top 10 Models:")
+    for i, model in enumerate(top_models[:10]):
+        print(f"Rank {i+1}: {model}")
+

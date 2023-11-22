@@ -16,12 +16,12 @@ def train_and_evaluate(train_loader, val_loader, sequence_length, num_epochs, tr
     """
     start_time = time.time()
 
-    load_attack_data_start_time = time.time()
+    # load_attack_data_start_time = time.time()
 
     # Cache attack data
     attack_data_cache = load_all_attack_data(attack_data_master_path, sequence_length, batch_size)
 
-    print("Process ID: {}, Attack data loading duration: {:.2f}s".format(getpid(), time.time() - load_attack_data_start_time))
+    # print("Process ID: {}, Attack data loading duration: {:.2f}s".format(getpid(), time.time() - load_attack_data_start_time))
 
     # Initialize model
     autoencoder = Autoencoder(sequence_length=sequence_length, num_system_calls=num_unique_syscalls, embedding_dim=embedding_dim, encoding_dim=encoding_dim, hidden_dim=hidden_dim)
@@ -50,32 +50,32 @@ def train_and_evaluate(train_loader, val_loader, sequence_length, num_epochs, tr
 
         train_loss = 0.0
         for i, batch in enumerate(train_loader):
-            batch_start_time = time.time()
+            # batch_start_time = time.time()
 
             inputs = batch[0]
-            embedding_start_time = time.time()
+            # embedding_start_time = time.time()
             embedded_inputs = autoencoder.embedding(inputs)
             embedded_inputs = embedded_inputs.view(inputs.size(0), -1)
-            print(f"Embedding time: {time.time() - embedding_start_time:.4f}s")
+            # print(f"Embedding time: {time.time() - embedding_start_time:.4f}s")
 
-            forward_start_time = time.time()
+            # forward_start_time = time.time()
             outputs = autoencoder(inputs)
             outputs = outputs.view(inputs.size(0), -1)
-            print(f"Forward pass time: {time.time() - forward_start_time:.4f}s")
+            # print(f"Forward pass time: {time.time() - forward_start_time:.4f}s")
 
-            loss_start_time = time.time()
+            # loss_start_time = time.time()
             loss = criterion(outputs, embedded_inputs)
-            print(f"Loss computation time: {time.time() - loss_start_time:.4f}s")
+            # print(f"Loss computation time: {time.time() - loss_start_time:.4f}s")
 
-            backward_start_time = time.time()
+            # backward_start_time = time.time()
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            print(f"Backward pass and optimization time: {time.time() - backward_start_time:.4f}s")
+            # print(f"Backward pass and optimization time: {time.time() - backward_start_time:.4f}s")
 
             train_loss += loss.item()
 
-            print(f"Total time for batch {i}: {time.time() - batch_start_time:.4f}s\n")
+            # print(f"Total time for batch {i}: {time.time() - batch_start_time:.4f}s\n")
                 
         train_loss /= len(train_loader)
 
@@ -96,7 +96,7 @@ def train_and_evaluate(train_loader, val_loader, sequence_length, num_epochs, tr
             # Test on attack data
             attack_test_start = time.time()
             attack_loss = attack_test(autoencoder, criterion, attack_data_cache)
-            print("Process ID: {}, Attack test duration: {:.2f}s".format(getpid(), time.time() - attack_test_start))
+            # print("Process ID: {}, Attack test duration: {:.2f}s".format(getpid(), time.time() - attack_test_start))
 
         # Calculate the relative difference (ratio)
         current_ratio = attack_loss / val_loss if val_loss != 0 else float('inf')
