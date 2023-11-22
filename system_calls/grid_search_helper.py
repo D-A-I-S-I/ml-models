@@ -35,12 +35,14 @@ def train_and_evaluate(train_loader, val_loader, sequence_length, num_epochs, tr
     best_val_loss = float('inf')
     best_attack_loss = float('-inf')
     best_ratio = float('-inf')
+    total_epochs = 0
     epochs_without_improvement = 0
     best_model_state = None
 
     # Training model
     for epoch in range(num_epochs):
-        epoch_start_time = time.time()
+        total_epochs += 1
+        # epoch_start_time = time.time()
         # print("-- Process ID: {}, Epoch: {}".format(getpid(), epoch))
         autoencoder.train()
         
@@ -121,10 +123,10 @@ def train_and_evaluate(train_loader, val_loader, sequence_length, num_epochs, tr
             break
 
         # print("Process ID: {}, Epoch: {}, Train Loss: {}, Attack Loss: {}, Validation Loss: {}, Atk/Val ratio: {}".format(getpid(), epoch, train_loss, attack_loss, val_loss, current_ratio))
-        print("Process ID: {}, Epoch duration: {:.2f}s".format(getpid(), time.time() - epoch_start_time))
+        # print("Process ID: {}, Epoch duration: {:.2f}s".format(getpid(), time.time() - epoch_start_time))
 
-    print("Total training duration: {:.2f}s".format(time.time() - start_time))
-    return best_train_loss, best_attack_loss, best_val_loss, best_ratio, hidden_dim, embedding_dim, encoding_dim, batch_size, lr, best_model_state, sequence_length
+    print("Total training duration: {:.2f}s, Total Epochs: {}".format(time.time() - start_time, total_epochs))
+    return best_train_loss, best_attack_loss, best_val_loss, best_ratio, hidden_dim, embedding_dim, encoding_dim, batch_size, lr, best_model_state, sequence_length, total_epochs
 
 # Function to load all attack data
 def load_all_attack_data(attack_data_master_path, sequence_length, batch_size):
@@ -145,7 +147,7 @@ def attack_test(autoencoder, criterion, attack_data_cache):
     for folder_name, (attack_data, attack_loader) in attack_data_cache.items():
         attack_loss += test_on_folder(autoencoder, criterion, attack_loader)
 
-    return attack_loss/len(attack_data_cache)
+    return attack_loss/len(attack_data_cache.items())
 
 def test_on_folder(autoencoder, criterion, attack_loader):
     """
@@ -162,7 +164,7 @@ def test_on_folder(autoencoder, criterion, attack_loader):
         loss = criterion(outputs, embedded_inputs)
         attack_loss += loss.item()
 
-    return attack_loss/len(attack_loader.dataset)
+    return attack_loss/len(attack_loader)
 
 def load_data(folder_path, sequence_length, batch_size, val_split=0.3):
     """

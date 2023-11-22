@@ -1,20 +1,20 @@
-from grid_search_helper import train_and_evaluate, load_data, load_all_attack_data
+from grid_search_helper import train_and_evaluate, load_data
 from multiprocessing import Pool
 from itertools import product
 import multiprocessing
 
 # Hyperparameters
-hidden_dims = [16, 32, 64]
-embedding_dims = [10, 20, 30]
-encoding_dims = [4, 8, 16]
-batch_sizes = [256, 512, 1024]
-learning_rates = [0.002]
-sequence_lengths = [5, 10, 15, 20]
-patience = 5
-num_epochs = 25
+hidden_dims = [8, 16]
+embedding_dims = [10]
+encoding_dims = [4, 8]
+batch_sizes = [256]
+learning_rates = [0.001]
+sequence_lengths = [5, 10]
+patience = 4
+num_epochs = 50
 val_split = 0.3
 
-# NOTE: Make sure to change paths accordingly!
+# NOTE: Make sure to change paths to location of dataset!
 folder_path = '../../ADFA-LD-Dataset/ADFA-LD/Training_Data_Master/'
 attack_data_master_path = '../../ADFA-LD-Dataset/ADFA-LD/Attack_Data_Master/'
 
@@ -26,23 +26,26 @@ def multiprocessing_wrapper(combination):
     """
     # print("Process ID: {}, Hyperparameters: {}".format(multiprocessing.current_process().pid, combination))
     hidden_dim, embedding_dim, encoding_dim, batch_size, lr, sequence_length, num_epochs, patience, val_split = combination
-    train_dataset, train_loader, val_loader, num_unique_syscalls = load_data(folder_path, sequence_length, batch_size, val_split) # TODO: move all load_data calls to helper file
+    train_dataset, train_loader, val_loader, num_unique_syscalls = load_data(folder_path, sequence_length, batch_size, val_split)
 
     return train_and_evaluate(train_loader, val_loader, sequence_length, num_epochs, train_dataset,
                                attack_data_master_path, num_unique_syscalls, hidden_dim,
                                  embedding_dim, encoding_dim, batch_size, lr, patience)
 
-def track_progress_and_collect_results(pool, all_combinations):
+def run_grid_search(pool, all_combinations):
+    """
+    Runs the grid search using multiprocessing. Returns the results.
+    """
     total = len(all_combinations)
     done = 0
-    results = []  # List to store results
+    results = []
 
     for result in pool.imap_unordered(multiprocessing_wrapper, all_combinations):
         done += 1
         print(f"Progress: {done}/{total} combinations done ({(done/total)*100:.2f}%)")
         results.append(result)
 
-    return results  # Return the collected results
+    return results
 
 
 if __name__ == "__main__":
@@ -50,10 +53,12 @@ if __name__ == "__main__":
     print('CPU count:', cores)
     
     all_combinations = list(product(hidden_dims, embedding_dims, encoding_dims, batch_sizes, learning_rates, sequence_lengths, [num_epochs], [patience], [val_split]))
+    print(f"Total number of combinations: {len(all_combinations)}")
     num_processes = len(all_combinations) if len(all_combinations) < cores else cores
+
     # Start the grid search WITH multiprocessing
-    with Pool(processes=num_processes) as pool:
-        results = track_progress_and_collect_results(pool, all_combinations)
+    with Pool(processes=(num_processes)) as pool: # NOTE: Leave 2 cores for other processes, change if desired
+        results = run_grid_search(pool, all_combinations)
     
     # Start the grid search WITHOUT multiprocessing
     # results = map(multiprocessing_wrapper, all_combinations)
@@ -77,7 +82,7 @@ if __name__ == "__main__":
     top_models = []
 
     for result in results:
-        train_loss, attack_loss, best_val_loss, best_ratio, hidden_dim, embedding_dim, encoding_dim, batch_size, lr, best_model, sequence_length = result
+        train_loss, attack_loss, best_val_loss, best_ratio, hidden_dim, embedding_dim, encoding_dim, batch_size, lr, best_model, sequence_length, total_epochs = result
         if best_ratio > best_model_info['atk_val_ratio']:
             best_model_info.update({
                 'train_loss': train_loss,
@@ -89,7 +94,8 @@ if __name__ == "__main__":
                 'encoding_dim': encoding_dim,
                 'batch_size': batch_size,
                 'learning_rate': lr,
-                'sequence_length': sequence_length
+                'sequence_length': sequence_length,
+                'total_epochs': total_epochs
             })
         
         # Add the current model to the list of top models
@@ -103,7 +109,8 @@ if __name__ == "__main__":
             'encoding_dim': encoding_dim,
             'batch_size': batch_size,
             'learning_rate': lr,
-            'sequence_length': sequence_length
+            'sequence_length': sequence_length,
+            'total_epochs': total_epochs
         })
 
     # Sort the top models based on atk_val_ratio in descending order
@@ -113,4 +120,9 @@ if __name__ == "__main__":
     print("Top 10 Models:")
     for i, model in enumerate(top_models[:10]):
         print(f"Rank {i+1}: {model}")
+    
+    # Store top results in file
+    with open('results.txt', 'w') as f:
+        for model in top_models:
+            f.write(f"{model}\n")
 
