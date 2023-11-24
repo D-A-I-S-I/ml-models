@@ -158,6 +158,12 @@ beth-dataset/
 # text files
 *.txt
 
+# not requirement file
+!requirements.txt
+
+# .DS_Store file (MacOS)
+.DS_Store
+
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
