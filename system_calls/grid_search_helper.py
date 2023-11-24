@@ -138,33 +138,47 @@ def load_all_attack_data(attack_data_master_path, sequence_length, batch_size):
             attack_data_cache[folder_name] = (attack_data, attack_loader)
     return attack_data_cache
 
-def attack_test(autoencoder, criterion, attack_data_cache):
+def attack_test(autoencoder, criterion, attack_data_cache, predict=False):
     """
-    Tests the autoencoder on the attack data. Returns the average attack loss.
+    Tests the autoencoder on the attack data. 
+    Returns the attack loss history if predict is True, otherwise returns average attack loss.
     """
     attack_loss = 0.0
+    loss_history_dict = {}
 
     for folder_name, (attack_data, attack_loader) in attack_data_cache.items():
-        attack_loss += test_on_folder(autoencoder, criterion, attack_loader)
+        if predict:
+            loss_history_dict[folder_name] = test_on_folder(autoencoder, criterion, attack_loader, predict=True)
+        else: 
+            attack_loss += test_on_folder(autoencoder, criterion, attack_loader)
 
-    return attack_loss/len(attack_data_cache.items())
+    if predict:
+        return loss_history_dict
+    else:
+        return attack_loss/len(attack_data_cache.items())
 
-def test_on_folder(autoencoder, criterion, attack_loader):
+def test_on_folder(autoencoder, criterion, attack_loader, predict=False):
     """
     Tests the autoencoder on the attack data in the given folder. Returns the average loss.
     """
     # Load attack data from the folder
     attack_loss = 0.0
+    loss_history = np.zeros(len(attack_loader))
 
     # Calculate loss for each batch in the attack data
-    for batch in attack_loader:
+    for i, batch in enumerate(attack_loader):
         inputs = batch[0]
         embedded_inputs = autoencoder.embedding(inputs).view(inputs.size(0), -1)
         outputs = autoencoder(inputs).view(inputs.size(0), -1)
         loss = criterion(outputs, embedded_inputs)
         attack_loss += loss.item()
-
-    return attack_loss/len(attack_loader)
+        if predict:
+            loss_history[i] = loss.item()
+    
+    if predict:
+        return loss_history
+    else:
+        return attack_loss/len(attack_loader)
 
 def load_data(folder_path, sequence_length, batch_size, val_split=0.3):
     """

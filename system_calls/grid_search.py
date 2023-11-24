@@ -2,21 +2,23 @@ from grid_search_helper import train_and_evaluate, load_data
 from multiprocessing import Pool
 from itertools import product
 import multiprocessing
+import torch
+import json
 
 # Hyperparameters
-hidden_dims = [8, 16]
+hidden_dims = [8]
 embedding_dims = [10]
-encoding_dims = [4, 8]
-batch_sizes = [256]
-learning_rates = [0.001]
-sequence_lengths = [5, 10]
+encoding_dims = [4]
+batch_sizes = [128]
+learning_rates = [0.01]
+sequence_lengths = [5]
 patience = 4
-num_epochs = 50
+num_epochs = 10
 val_split = 0.3
 
 # NOTE: Make sure to change paths to location of dataset!
-folder_path = '../../ADFA-LD-Dataset/ADFA-LD/Training_Data_Master/'
-attack_data_master_path = '../../ADFA-LD-Dataset/ADFA-LD/Attack_Data_Master/'
+folder_path = '../../../ADFA-LD-Dataset/ADFA-LD/Training_Data_Master/'
+attack_data_master_path = '../../../ADFA-LD-Dataset/ADFA-LD/Attack_Data_Master/'
 
 # Create all combinations of hyperparameters
 
@@ -95,7 +97,8 @@ if __name__ == "__main__":
                 'batch_size': batch_size,
                 'learning_rate': lr,
                 'sequence_length': sequence_length,
-                'total_epochs': total_epochs
+                'total_epochs': total_epochs,
+                'best_model': best_model
             })
         
         # Add the current model to the list of top models
@@ -110,19 +113,21 @@ if __name__ == "__main__":
             'batch_size': batch_size,
             'learning_rate': lr,
             'sequence_length': sequence_length,
-            'total_epochs': total_epochs
+            'total_epochs': total_epochs,
+            'best_model': best_model
         })
 
     # Sort the top models based on atk_val_ratio in descending order
     top_models.sort(key=lambda x: x['atk_val_ratio'], reverse=True)
 
-    # Print the top 10 models
     print("Top 10 Models:")
     for i, model in enumerate(top_models[:10]):
-        print(f"Rank {i+1}: {model}")
-    
-    # Store top results in file
-    with open('results.txt', 'w') as f:
-        for model in top_models:
-            f.write(f"{model}\n")
+        model_info = {k: v for k, v in model.items() if k != 'best_model'}
+        print(f"Rank {i+1}: {model_info}")
 
+    # save 5 best models to files, and model info in separate file
+    for i, model in enumerate(top_models[:5]):
+        torch.save(model['best_model'], f'trained_models/model_{i}.pth')  
+        with open(f'trained_models/model_{i}_info.json', 'w') as f:
+            model_info = {k: v for k, v in model.items() if k != 'best_model'}
+            json.dump(model_info, f)
