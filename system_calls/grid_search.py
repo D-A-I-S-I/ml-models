@@ -6,18 +6,18 @@ import torch
 import json
 
 # Hyperparameters
-hidden_dims = [8]
+hidden_dims = [8, 16]
 embedding_dims = [10]
-encoding_dims = [4]
-batch_sizes = [128]
-learning_rates = [0.01]
-sequence_lengths = [5]
-patience = 4
-num_epochs = 10
+encoding_dims = [3, 5]
+batch_sizes = [64, 128, 256]
+learning_rates = [0.01, 0.001]
+sequence_lengths = [15, 20]
+patience = 3
+num_epochs = 60
 val_split = 0.3
 
 # NOTE: Make sure to change paths to location of dataset!
-folder_path = '../../../ADFA-LD-Dataset/ADFA-LD/Training_Data_Master/'
+folder_path = '../../../ADFA-LD-Dataset/ADFA-LD/Validation_Data_Master/'
 attack_data_master_path = '../../../ADFA-LD-Dataset/ADFA-LD/Attack_Data_Master/'
 
 # Create all combinations of hyperparameters
@@ -58,11 +58,11 @@ if __name__ == "__main__":
     print(f"Total number of combinations: {len(all_combinations)}")
     num_processes = len(all_combinations) if len(all_combinations) < cores else cores
 
-    # Start the grid search WITH multiprocessing
+    # * Start the grid search WITH multiprocessing
     with Pool(processes=(num_processes)) as pool: # NOTE: Leave 2 cores for other processes, change if desired
         results = run_grid_search(pool, all_combinations)
     
-    # Start the grid search WITHOUT multiprocessing
+    # * Start the grid search WITHOUT multiprocessing
     # results = map(multiprocessing_wrapper, all_combinations)
 
     # Find the best model

@@ -1,12 +1,14 @@
-import torch.optim as optim
-import numpy as np
-import os
-import torch
-import torch.nn as nn
 from torch.utils.data import TensorDataset, DataLoader, random_split
 from Autoencoder import Autoencoder
 from os import getpid
+
+import torch.optim as optim
+import torch.nn as nn
+import pandas as pd
+import numpy as np
+import torch
 import time
+import os
 
 # ? make into class
 
@@ -56,13 +58,11 @@ def train_and_evaluate(train_loader, val_loader, sequence_length, num_epochs, tr
 
             inputs = batch[0]
             # embedding_start_time = time.time()
-            embedded_inputs = autoencoder.embedding(inputs)
-            embedded_inputs = embedded_inputs.view(inputs.size(0), -1)
+            embedded_inputs = autoencoder.embedding(inputs).view(inputs.size(0), -1)
             # print(f"Embedding time: {time.time() - embedding_start_time:.4f}s")
 
             # forward_start_time = time.time()
-            outputs = autoencoder(inputs)
-            outputs = outputs.view(inputs.size(0), -1)
+            outputs = autoencoder(inputs).view(inputs.size(0), -1)
             # print(f"Forward pass time: {time.time() - forward_start_time:.4f}s")
 
             # loss_start_time = time.time()
@@ -96,7 +96,7 @@ def train_and_evaluate(train_loader, val_loader, sequence_length, num_epochs, tr
             val_loss /= len(val_loader)
 
             # Test on attack data
-            attack_test_start = time.time()
+            # attack_test_start = time.time()
             attack_loss = attack_test(autoencoder, criterion, attack_data_cache)
             # print("Process ID: {}, Attack test duration: {:.2f}s".format(getpid(), time.time() - attack_test_start))
 
@@ -180,6 +180,31 @@ def test_on_folder(autoencoder, criterion, attack_loader, predict=False):
     else:
         return attack_loss/len(attack_loader)
 
+
+def eliminate_duplicates(sequences):
+    # Create a DataFrame from the sequences
+    df = pd.DataFrame(sequences)
+
+    # Create a coefficient vector
+    coefficient_vector = np.arange(1, len(sequences[0]) + 1)
+
+    # Transform each sequence using the coefficient vector
+    transformed_sequences = np.dot(df.values, coefficient_vector)
+
+    # Add the transformed sequences as a new column in the DataFrame
+    df['transformed_sequence'] = transformed_sequences
+
+    # Keep the first occurrence of each duplicated sequence
+    unique_df = df.drop_duplicates(subset='transformed_sequence', keep='first')
+
+    # Drop the temporary column
+    unique_df = unique_df.drop(columns=['transformed_sequence'])
+
+    # Convert the result back to a list of lists
+    unique_sequences = unique_df.values.tolist()
+
+    return unique_sequences
+
 def load_data(folder_path, sequence_length, batch_size, val_split=0.3):
     """
     Loads the data from the given folder path. Returns the dataset and DataLoaders.
@@ -197,6 +222,11 @@ def load_data(folder_path, sequence_length, batch_size, val_split=0.3):
                 combined_batches = [lst for lst in combined_batches if len(lst) == sequence_length]
                 data.extend(combined_batches)
                 unique.extend(content)
+
+    # print data size
+    pre_elimination = len(data)
+    data = eliminate_duplicates(data)
+    print("Sequences duplicates : {}/{} || {}%".format(pre_elimination-len(data), pre_elimination, float(float((pre_elimination-len(data))/pre_elimination))*100))
 
     unique_syscalls = set(unique)
     num_unique_syscalls = 174 # ! temp solution (len(unique_syscalls))
@@ -220,3 +250,4 @@ def load_data(folder_path, sequence_length, batch_size, val_split=0.3):
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, drop_last=True)
 
     return dataset, train_loader, val_loader, num_unique_syscalls
+
