@@ -58,7 +58,7 @@ def live_read_and_process(file_path, model, syscall_mapping, sequence_length, th
             last_position = file.tell()  # Update the last read position
 
             end_read_time = time.time()
-            print(f"Read {len(content)} bytes in {end_read_time - start_read_time} seconds")
+            print(f"Read {len(content)} bytes in {end_read_time - start_read_time} seconds") if content else print("Waiting for input data...")
 
             start_process_time = time.time()
 
@@ -104,7 +104,7 @@ if __name__ == '__main__':
 
     # Continuous processing
     # TODO: abstract file path to a config file and load continuously in the read loop.
-    file_path = 'UVD-0030.txt'
+    file_path = 'live_syscall_test_input.txt'
     sequence_length = model_info['sequence_length']
     
     # TODO: abstract the threshold to a config file and load continuously in the read loop.
