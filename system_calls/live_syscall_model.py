@@ -63,7 +63,7 @@ def live_read_and_process(file_path, model, syscall_mapping, sequence_length, th
             start_process_time = time.time()
 
             syscalls = content.strip().split()
-            num_sequences = len(syscalls) - sequence_length + 1
+            num_sequences = len(syscalls) - sequence_length + 1 if len(syscalls) >= sequence_length else 0
             print(f"Number of sequences: {num_sequences}")
             # Process the content in a sliding window (sequence) manner
             for i in range(num_sequences):
