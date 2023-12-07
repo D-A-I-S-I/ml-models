@@ -47,6 +47,9 @@ def live_read_and_process(file_path, model, syscall_mapping, sequence_length, th
     while True:
         time.sleep(0.5)  # FIXME: adjust or the sleep time later
 
+        # TODO: Only read specified number of bytes each time
+        # - Finetune based on performance and time to read+process
+
         # Time logging
         start_read_time = time.time()
         with open(file_path, 'r') as file:
