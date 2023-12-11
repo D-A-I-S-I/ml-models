@@ -194,8 +194,10 @@ def eliminate_duplicates(sequences):
     # Add the transformed sequences as a new column in the DataFrame
     df['transformed_sequence'] = transformed_sequences
 
-    # Keep the first occurrence of each duplicated sequence
-    unique_df = df.drop_duplicates(subset='transformed_sequence', keep='first')
+    # Keep 20% of the duplicates randomly
+    duplicates = df[df.duplicated(subset='transformed_sequence')]
+    unique_df = df.drop_duplicates(subset='transformed_sequence', keep=False)
+    unique_df = pd.concat([unique_df, duplicates.sample(frac=0.1, random_state=42)])
 
     # Drop the temporary column
     unique_df = unique_df.drop(columns=['transformed_sequence'])

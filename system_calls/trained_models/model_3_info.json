@@ -1,1 +1,1 @@
-{"train_loss": 0.07655717141273197, "attack_loss": 0.9066477818135501, "val_loss": 0.07764116037153798, "atk_val_ratio": 7.567716200609216, "hidden_dim": 8, "embedding_dim": 10, "encoding_dim": 5, "batch_size": 64, "learning_rate": 0.01, "sequence_length": 20, "total_epochs": 60}
+{"train_loss": 0.010986371158585419, "attack_loss": 0.7394998772520737, "val_loss": 0.010997666225409748, "atk_val_ratio": 43.88775811837997, "hidden_dim": 32, "embedding_dim": 6, "encoding_dim": 4, "batch_size": 64, "learning_rate": 0.01, "sequence_length": 10, "total_epochs": 80}

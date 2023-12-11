@@ -108,6 +108,6 @@ if __name__ == '__main__':
     sequence_length = model_info['sequence_length']
     
     # TODO: abstract the threshold to a config file and load continuously in the read loop.
-    threshold = 1.0 # FIXME: adjust after retraining the model
+    threshold = 0.85 # FIXME: adjust after retraining the model
 
     live_read_and_process(file_path, model, syscall_mapping, sequence_length, threshold)

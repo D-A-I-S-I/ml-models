@@ -6,14 +6,14 @@ import torch
 import json
 
 # Hyperparameters
-hidden_dims = [8, 16]
-embedding_dims = [10]
-encoding_dims = [3, 5]
+hidden_dims = [8, 16, 32]
+embedding_dims = [6,8,10]
+encoding_dims = [3,4,5]
 batch_sizes = [64, 128, 256]
 learning_rates = [0.01, 0.001]
-sequence_lengths = [15, 20]
+sequence_lengths = [7, 10, 15]
 patience = 3
-num_epochs = 60
+num_epochs = 80
 val_split = 0.3
 
 # NOTE: Make sure to change paths to location of dataset!
