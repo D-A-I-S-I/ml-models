@@ -1,6 +1,8 @@
 import torch
 import json
 import time
+import os
+import csv
 
 from Autoencoder import Autoencoder
 from torch import nn
@@ -46,6 +48,14 @@ def live_read_and_process(file_path, model, syscall_mapping, sequence_length, th
     # Initialize an empty buffer
     buffer = []
 
+    # Initialize the CSV writer
+    if not os.path.exists('logging_info.csv'):
+        with open('logging_info.csv', 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['timestamp', 'batch_classification_rate', 'batch_size',
+                             'average_normal_loss_factor', 'average_intrusion_loss_factor',
+                             'threshold', 'percentage_intrusions'])
+
     while True:
         time.sleep(0.5)  # FIXME: adjust or the sleep time later
         print('Waiting for new data...')
@@ -81,17 +91,25 @@ def live_read_and_process(file_path, model, syscall_mapping, sequence_length, th
                     losses = criterion(outputs, embedded_inputs).mean(dim=1)
                     classifications = ['POSSIBLE INTRUSION' if loss.item() > threshold else 'Normal' for loss in losses]
 
-                    # # Print the classifications and losses
-                    # for sequence, classification, loss in zip(buffer[:batch_size], classifications, losses):
-                    #     formatted_sequence = ', '.join(str(elem) for elem in sequence)
-                    #     print(f"Sequence: [{formatted_sequence}] - Classification: {classification}, Loss: {loss.item():.6f}")
-                    
-
+                    # Inside the loop, after processing each batch
                     end_time = time.time()
                     num_sequences = len(buffer[:batch_size])
                     time_taken = end_time - start_time
                     sequences_per_second = num_sequences / time_taken
-                    print(f"Processed {num_sequences} sequences in {time_taken:.2f} seconds ({sequences_per_second:.2f} sequences/second)")
+
+                    # Compute average loss factors for normal and intrusion sequences
+                    normal_losses = [loss.item() / threshold for loss, classification in zip(losses, classifications) if classification == 'Normal']
+                    intrusion_losses = [loss.item() / threshold for loss, classification in zip(losses, classifications) if classification == 'POSSIBLE INTRUSION']
+                    percentage_intrusions = len(intrusion_losses) / len(losses) * 100
+                    average_normal_loss_factor = sum(normal_losses) / len(normal_losses) if normal_losses else 0
+                    average_intrusion_loss_factor = sum(intrusion_losses) / len(intrusion_losses) if intrusion_losses else 0
+
+                    # Write the logging info to the CSV file
+                    with open('logging_info.csv', 'a', newline='') as f:
+                        writer = csv.writer(f)
+                        writer.writerow([end_time, sequences_per_second, batch_size, average_normal_loss_factor, average_intrusion_loss_factor, threshold, percentage_intrusions])
+
+                    # Reset the start time for the next batch
                     start_time = time.time()
 
                     # Remove the processed batch from the buffer
@@ -122,4 +140,5 @@ if __name__ == '__main__':
     # TODO: abstract the threshold to a config file and load continuously in the read loop.
     threshold = 1.0 # FIXME: adjust after retraining the model
 
-    live_read_and_process(file_path, model, syscall_mapping, sequence_length, threshold, read_size=999999999999, batch_size=10000)
+    # FIXME: finetune the read_size and batch_size
+    live_read_and_process(file_path, model, syscall_mapping, sequence_length, threshold, read_size=999999999999, batch_size=5000) 
